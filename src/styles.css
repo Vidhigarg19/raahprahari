@@ -132,16 +132,19 @@ code {
   --action-info: var(--blue-on-light);
   --action-caution: #a44200;
   --action-restricted: #b4232f;
-  --status-closed: var(--action-restricted);
+  --status-closed: var(--status-dnt);
   --status-stale: #56616a;
   --status-unknown: #56616a;
   --action-blue: var(--action-info);
   --radius: 0.875rem;
 
-  --status-clear: #245c98;
-  --status-caution: var(--action-caution);
-  --status-avoid: #a44200;
-  --status-dnt: var(--status-closed);
+  /* Road status: four distinct hues, each at least 4.5:1 on background, card
+     and muted, and never green (docs/change-order.md). Clear is its own
+     cyan-blue, not the link colour. Icons and labels always come with them. */
+  --status-clear: #0b5f87;
+  --status-caution: #715400;
+  --status-avoid: #a43c0a;
+  --status-dnt: #b01e3a;
   --status-official: var(--orange-on-light);
 
   --chart-1: var(--status-clear);
@@ -198,14 +201,15 @@ code {
   --action-info: var(--blue-on-dark);
   --action-caution: #ffd166;
   --action-restricted: #ff7868;
-  --status-closed: var(--action-restricted);
+  --status-closed: var(--status-dnt);
   --status-stale: #a7b5bf;
   --status-unknown: #a7b5bf;
   --action-blue: var(--action-info);
-  --status-clear: #92c5ff;
-  --status-caution: var(--action-caution);
-  --status-avoid: #ff7868;
-  --status-dnt: var(--status-closed);
+  /* Road status (dark): same four hues, lifted for the navy surfaces. */
+  --status-clear: #7cd0ff;
+  --status-caution: #ffd166;
+  --status-avoid: #ff9a3d;
+  --status-dnt: #ff6b81;
   --status-official: #ff8766;
   --chart-1: var(--status-clear);
   --chart-2: var(--status-caution);
@@ -1301,6 +1305,21 @@ textarea::placeholder {
   max-width: 90rem;
 }
 
+/* Header and navigation chrome (light theme). Orange is the one accent and
+   marks where you are; selection rings are neutral so blue never competes.
+   The darker orange keeps the current-page underline above 3:1. */
+:root:not(.dark) .rp-underline::after {
+  background: var(--orange-on-light);
+}
+:root:not(.dark) .rp-lang .rp-lang-btn[aria-pressed='true'],
+:root:not(.dark) .rp-chrome-nav a[aria-current='page'].rp-press {
+  box-shadow: inset 0 0 0 2px var(--foreground);
+}
+/* The bottom nav shows the current page with its orange top marker instead. */
+:root:not(.dark) .rp-bottom-nav a[aria-current='page'].rp-press {
+  box-shadow: none;
+}
+
 /* Language switch: the focus ring follows the pill and sits inside it, so it
    never spills over the neighbouring links or becomes a circle over the label. */
 .rp-lang .rp-lang-btn:focus-visible,
@@ -1418,5 +1437,129 @@ textarea::placeholder {
     animation: none;
     transform: none;
     opacity: 1;
+  }
+}
+
+/* ── Unslop: shared status accents ───────────────────────────────────────────
+   Any element with data-level gets --level-accent from the status tokens, so
+   card edges always match the badge. Unknown is grey and dashed, never green. */
+[data-level='clear'] { --level-accent: var(--status-clear); }
+[data-level='caution'] { --level-accent: var(--status-caution); }
+[data-level='avoid'] { --level-accent: var(--status-avoid); }
+[data-level='do_not_travel'] { --level-accent: var(--status-dnt); }
+[data-level='unknown'] { --level-accent: var(--status-unknown); }
+
+.rp-status-card {
+  position: relative;
+  overflow: hidden;
+  border-left-width: 4px;
+  border-left-color: var(--level-accent, var(--status-unknown));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--level-accent, transparent) 9%, transparent), transparent 45%),
+    var(--card);
+}
+.rp-status-card[data-level='unknown'] {
+  border-left-style: dashed;
+}
+
+
+/* ── Unslop: app shell ────────────────────────────────────────────────────────
+   One <header> (site-chrome.tsx) is a top bar below xl and a fixed left rail
+   from xl. --rp-top-h is the height pages lose to the top bar, so screens
+   sized to the viewport (map, home hero, traveller) subtract it. */
+:root {
+  --rp-rail-w: 16rem;
+  --rp-top-h: 4rem;
+  /* Room reserved for the mobile bottom tabs (77px with two-line labels),
+     excluding the safe-area inset, which is added where it is used. */
+  --rp-bottom-h: 5rem;
+}
+@media (min-width: 1280px) {
+  :root {
+    --rp-top-h: 0rem;
+    --rp-bottom-h: 0rem;
+  }
+}
+
+/* A thin brand stripe across the top of the bar or rail. */
+.rp-header::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brand-orange) 0%, var(--brand-orange) 30%, transparent 85%);
+  content: '';
+  pointer-events: none;
+}
+
+@media (min-width: 1280px) {
+  .rp-header {
+    background: color-mix(in srgb, var(--card) 55%, var(--background));
+  }
+  /* The rail is its own column: no centred max-width, a tighter gutter. */
+  .rp-header .rp-container {
+    max-width: none;
+    padding-inline: 0.875rem;
+  }
+  .rp-header .rp-container > a:first-child {
+    padding-inline: 0.375rem;
+  }
+  .rp-rail-tools .rp-lang {
+    flex: 1;
+  }
+  .rp-rail-tools .rp-lang .rp-lang-btn {
+    flex: 1;
+  }
+}
+/* Short laptop screens: drop the tagline so the actions keep their room. */
+@media (min-width: 1280px) and (max-height: 860px) {
+  .rp-rail-tagline {
+    display: none;
+  }
+}
+
+/* Rail and menu links: icon plus label; the current page gets an orange bar. */
+.rp-rail-link {
+  position: relative;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: background-color var(--motion-base) var(--ease-out), color var(--motion-base) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .rp-rail-link:hover {
+    background: color-mix(in srgb, var(--foreground) 7%, transparent);
+    color: var(--foreground);
+  }
+}
+.rp-rail-link[aria-current='page'] {
+  background: color-mix(in srgb, var(--brand-orange) 14%, transparent);
+  color: var(--foreground);
+  font-weight: 600;
+}
+.rp-rail-link[aria-current='page']::before {
+  position: absolute;
+  inset-block: 0.5rem;
+  left: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--brand-orange);
+  content: '';
+}
+.rp-rail-link[aria-current='page'] svg {
+  color: var(--brand-orange);
+}
+/* Light theme marks the current page with the bar, not the generic ring. */
+:root:not(.dark) .rp-rail-link[aria-current='page'].rp-press,
+:root:not(.dark) .rp-chrome-nav .rp-rail-link[aria-current='page'].rp-press {
+  box-shadow: none;
+}
+:root:not(.dark) .rp-rail-link[aria-current='page']::before {
+  background: var(--orange-on-light);
+}
+:root:not(.dark) .rp-rail-link[aria-current='page'] svg {
+  color: var(--orange-on-light);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-rail-link {
+    transition: none;
   }
 }

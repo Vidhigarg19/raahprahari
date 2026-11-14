@@ -96,6 +96,7 @@ describe("mobile navigation keyboard accessibility", () => {
     expect(
       within(moreNav).getAllByRole("link").map((link) => [link.textContent, link.getAttribute("href")]),
     ).toEqual([
+      ["Contributions", "/contributions"],
       ["About", "/about"],
       ["Contact", "/contact"],
     ]);

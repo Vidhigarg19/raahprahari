@@ -15,6 +15,10 @@ const PRIMARY = [
   ['Live Map', '/map'],
   ['Advisories', '/advisories'],
   ['Help', '/help'],
+  // The rail's "More" group, signed out (My Reports needs a session).
+  ['Contributions', '/contributions'],
+  ['About', '/about'],
+  ['Contact', '/contact'],
 ] as const
 
 const BOTTOM = [
@@ -113,9 +117,10 @@ describe('shared site navigation', () => {
           controls[i - 1].compareDocumentPosition(controls[i]) & Node.DOCUMENT_POSITION_FOLLOWING,
         ).toBeTruthy()
       }
+      // One Report Hazard in the rail; below xl the raised bottom tab carries it.
       const reportLinks = within(header).getAllByRole('link', { name: 'Report Hazard' })
-      expect(reportLinks).toHaveLength(2)
-      expect(reportLinks.map((link) => link.getAttribute('href'))).toEqual(['/report', '/report'])
+      expect(reportLinks.map((link) => link.getAttribute('href'))).toEqual(['/report'])
+      expect(within(bottom).getByRole('link', { name: 'Report Hazard' })).toHaveAttribute('href', '/report')
       expect(within(header).getByRole('button', { name: 'Open menu' })).toBeInTheDocument()
 
       // Active item follows the route.

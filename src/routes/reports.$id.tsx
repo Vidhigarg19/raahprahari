@@ -50,10 +50,10 @@ function ReportsDetailPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="mb-6 flex flex-col gap-2">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Private detail
         </p>
-        <h1 className="font-display text-3xl">
+        <h1 className="font-display text-3xl font-semibold">
           Report #{draft.id.slice(0, 8)}
         </h1>
       </div>
