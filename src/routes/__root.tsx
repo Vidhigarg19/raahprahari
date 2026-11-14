@@ -96,10 +96,25 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   // These routes render the shared PrototypeRibbon inside their own layout.
-  const { isHome, isTraveller, isMap, isHelp, isNotFound, isAdvisories, isReport } =
+  const {
+    isHome,
+    isTraveller,
+    isMap,
+    isHelp,
+    isNotFound,
+    isAdvisories,
+    isReport,
+    hasInlineRibbon,
+  } =
     useRouterState({
       select: (state) => ({
         isReport: state.location.pathname.startsWith("/report"),
+        // /review, /review/$ref and /contributions always render the ribbon at
+        // the top of their content, so the floating copy would be a duplicate.
+        hasInlineRibbon:
+          state.location.pathname === "/contributions" ||
+          state.location.pathname === "/review" ||
+          state.location.pathname.startsWith("/review/"),
         isHome: state.location.pathname === "/",
         isTraveller: state.location.pathname === "/traveller",
         isMap: state.location.pathname === "/map",
@@ -140,24 +155,29 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 <RouteProgress />
                 <RevealObserver />
                 <BackToTop />
-                <div className="flex min-h-svh flex-col overflow-x-clip pb-[calc(5rem+env(safe-area-inset-bottom))] xl:pb-0">
+                {/* App shell: below xl the header is a top bar and the bottom
+                    tabs need room under the content; from xl the header is a
+                    fixed left rail and the content starts after it. */}
+                <div className="rp-shell flex min-h-svh flex-col overflow-x-clip pb-[calc(var(--rp-bottom-h)+env(safe-area-inset-bottom))] xl:pb-0 xl:pl-(--rp-rail-w)">
                   <SiteHeader />
                   <main id="main" aria-busy="true" className="min-w-0 flex-1">
                     {children}
+                    {/* Fixed on screen, but kept inside <main> so it sits in a landmark. */}
+                    {!isHome &&
+                      !isTraveller &&
+                      !isMap &&
+                      !isHelp &&
+                      !isNotFound &&
+                      !isReport &&
+                      !isAdvisories &&
+                      !hasInlineRibbon && (
+                        <div className="rp-demo-badge-ribbon pointer-events-none fixed right-2 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-(--z-bottom-nav) xl:bottom-2">
+                          <PrototypeRibbon />
+                        </div>
+                      )}
                   </main>
                   {!isHome && !isTraveller && !isMap && !isHelp && <SiteFooter />}
                 </div>
-                {!isHome &&
-                  !isTraveller &&
-                  !isMap &&
-                  !isHelp &&
-                  !isNotFound &&
-                  !isReport &&
-                  !isAdvisories && (
-                    <div className="rp-demo-badge-ribbon pointer-events-none fixed right-2 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-(--z-bottom-nav) xl:bottom-2">
-                      <PrototypeRibbon />
-                    </div>
-                  )}
               </SyncProvider>
             </AccountScopeBoundary>
           </TooltipProvider>

@@ -47,8 +47,18 @@ describe("header breakpoints", () => {
     expect(classes(nav)).toEqual(expect.arrayContaining(["hidden", "xl:flex"]));
     expect(
       within(nav).getAllByRole("link").map((a) => a.textContent),
-    ).toEqual(["Home", "Search roads", "Live Map", "Advisories", "Help"]);
-    expect(within(nav).getByRole("button", { name: /more/i })).toBeInTheDocument();
+    ).toEqual([
+      "Home",
+      "Search roads",
+      "Live Map",
+      "Advisories",
+      "Help",
+      // The rail lists the secondary links under a "More" heading.
+      "Contributions",
+      "About",
+      "Contact",
+    ]);
+    expect(within(nav).getByRole("list", { name: "More" })).toBeInTheDocument();
     for (const link of within(nav).getAllByRole("link")) {
       expect(classes(link)).toContain("whitespace-nowrap");
     }

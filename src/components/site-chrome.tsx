@@ -1,9 +1,13 @@
 import { useRef, useState, useSyncExternalStore } from 'react'
 import { Link, useRouterState } from '@tanstack/react-router'
 import {
-  ChevronDown,
+  Award,
+  FileText,
   House,
+  Info,
+  LifeBuoy,
   ListChecks,
+  Mail,
   Map,
   Menu,
   Monitor,
@@ -12,18 +16,14 @@ import {
   Sun,
   TriangleAlert,
   UserRound,
+  type LucideIcon,
 } from 'lucide-react'
 import { crossFadeTheme, useScrolled } from '@/components/motion'
-import { OfflineBanner } from '@/components/offline-banner'
+import { SyncStatusIndicator } from '@/components/offline-banner'
 import { Button } from '@/components/ui/button'
 import { FeatureSearchModal } from '@/components/feature-search-modal'
 import { LoginDialog } from '@/components/login-dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import type { TranslationKey } from '@/i18n/dictionary'
 import {
   Sheet,
   SheetClose,
@@ -44,7 +44,7 @@ function LanguageSwitch() {
     <div
       role="group"
       aria-label={t('lang.label')}
-      className="rp-lang inline-flex h-10 shrink-0 items-center gap-0.5 rounded-full border border-border p-0.5 text-sm whitespace-nowrap"
+      className="rp-lang inline-flex h-11 shrink-0 items-center gap-0.5 rounded-full bg-muted/60 text-sm whitespace-nowrap"
     >
       {(['en', 'hi'] as const).map((language) => (
         <button
@@ -54,7 +54,8 @@ function LanguageSwitch() {
           onClick={() => setLang(language)}
           lang={language}
           className={cn(
-            'rp-press rp-lang-btn inline-flex h-8 min-h-8 min-w-10 items-center justify-center rounded-full px-2.5 text-sm font-medium whitespace-nowrap',
+            // Full 44px targets; the track behind them shows the group.
+            'rp-press rp-lang-btn inline-flex h-11 min-w-11 items-center justify-center rounded-full px-3 text-sm font-medium whitespace-nowrap',
             lang === language
               ? 'bg-raised text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground',
@@ -80,7 +81,6 @@ function ThemeSwitch() {
     <Button
       variant="ghost"
       size="icon-lg"
-      className="rounded-full"
       onClick={() => {
         crossFadeTheme()
         setTheme(next)
@@ -140,18 +140,24 @@ function SearchButton({
   // An icon-only button must carry its name in aria-label (Button enforces it).
   if (compact)
     return (
-      <Button {...shared} size="icon-lg" aria-label={t('palette.open')} className="rounded-full">
+      <Button {...shared} size="icon-lg" aria-label={t('palette.open')}>
         <Search aria-hidden />
       </Button>
     )
   return (
-    <Button {...shared} className="h-10 gap-2 rounded-full px-3">
+    <Button
+      {...shared}
+      className="gap-2 px-3 text-muted-foreground hover:text-foreground xl:w-full xl:justify-start xl:border xl:border-border xl:bg-card"
+    >
       <Search aria-hidden />
-      <span className="sr-only">{t('palette.open')}</span>
+      {/* In the rail there is room to name it; elsewhere the name is for screen readers. */}
+      <span className="sr-only xl:not-sr-only xl:truncate xl:whitespace-nowrap">
+        {t('palette.open')}
+      </span>
       <kbd
         aria-hidden
         data-testid="search-shortcut"
-        className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground"
+        className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground xl:ml-auto"
       >
         {shortcut}
       </kbd>
@@ -159,18 +165,20 @@ function SearchButton({
   )
 }
 
+
 export const PRIMARY_NAV = [
-  { to: '/', label: 'nav.home' },
-  { to: '/traveller', label: 'nav.traveller' },
-  { to: '/map', label: 'nav.map' },
-  { to: '/advisories', label: 'nav.advisories' },
-  { to: '/help', label: 'nav.help' },
+  { to: '/', label: 'nav.home', icon: House },
+  { to: '/traveller', label: 'nav.traveller', icon: Search },
+  { to: '/map', label: 'nav.map', icon: Map },
+  { to: '/advisories', label: 'nav.advisories', icon: ListChecks },
+  { to: '/help', label: 'nav.help', icon: LifeBuoy },
 ] as const
 
 export const SECONDARY_NAV = [
-  { to: '/about', label: 'nav.about' },
-  { to: '/contact', label: 'nav.contact' },
-  { to: '/reports', label: 'nav.myReports' },
+  { to: '/contributions', label: 'nav.contributions', icon: Award },
+  { to: '/about', label: 'nav.about', icon: Info },
+  { to: '/contact', label: 'nav.contact', icon: Mail },
+  { to: '/reports', label: 'nav.myReports', icon: FileText },
 ] as const
 
 export const BOTTOM_NAV = [
@@ -197,8 +205,20 @@ export function activeNavTarget(pathname: string, view?: string): NavTarget | nu
   if (path === '/help' || path.startsWith('/help/')) return '/help'
   if (path === '/about') return '/about'
   if (path === '/contact') return '/contact'
+  if (path === '/contributions') return '/contributions'
   if (path === '/reports' || path.startsWith('/reports/')) return '/reports'
   if (path === '/report' || path.startsWith('/report/')) return '/report'
+  return null
+}
+
+/** The mobile top bar names the section you are in; pages keep their own h1. */
+function sectionLabel(pathname: string, active: NavTarget | null): TranslationKey | null {
+  const item = [...PRIMARY_NAV, ...SECONDARY_NAV, ...BOTTOM_NAV].find(({ to }) => to === active)
+  if (item) return item.label
+  if (pathname.startsWith('/status')) return 'footer.status'
+  if (pathname.startsWith('/review')) return 'review.title'
+  if (pathname.startsWith('/official')) return 'official.title'
+  if (pathname.startsWith('/profile')) return 'nav.account'
   return null
 }
 
@@ -208,6 +228,38 @@ function useSecondaryNav() {
   return SECONDARY_NAV.filter(({ to }) => to !== '/reports' || signedIn)
 }
 
+/** One rail link: icon and label, with the current page marked in orange. */
+function RailLink({
+  to,
+  label,
+  icon: Icon,
+  current,
+}: {
+  to: NavTarget
+  label: string
+  icon: LucideIcon
+  current: 'page' | undefined
+}) {
+  return (
+    <li>
+      <Link
+        to={to}
+        aria-current={current}
+        className="rp-rail-link rp-press flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium whitespace-nowrap"
+      >
+        <Icon aria-hidden className="size-[1.15rem] shrink-0" />
+        <span className="truncate">{label}</span>
+      </Link>
+    </li>
+  )
+}
+
+/**
+ * The app shell's chrome. One <header> serves both layouts: below xl it is a
+ * top bar (brand, section, search, sync status, menu) above fixed bottom tabs;
+ * from xl the same element becomes the left navigation rail. Keeping one
+ * element keeps a single banner landmark and the same keyboard order.
+ */
 export function SiteHeader() {
   const { t } = usePrefs()
   const secondaryNav = useSecondaryNav()
@@ -226,6 +278,7 @@ export function SiteHeader() {
   })
   const active = activeNavTarget(pathname, view)
   const current = (to: NavTarget) => (active === to ? ('page' as const) : undefined)
+  const section = sectionLabel(pathname, active)
 
   const openLogin = (returnTo: HTMLButtonElement | null) => {
     loginReturnFocusRef.current = returnTo
@@ -243,68 +296,63 @@ export function SiteHeader() {
     <>
       <header
         data-scrolled={scrolled}
-        className="rp-header sticky top-0 z-(--z-header) border-b border-border/70 bg-background/90 backdrop-blur-md"
+        className="rp-header sticky top-0 z-(--z-header) border-b border-border/70 bg-background xl:fixed xl:inset-y-0 xl:left-0 xl:w-(--rp-rail-w) xl:border-r xl:border-b-0"
       >
-        <div className="rp-container flex h-16 min-w-0 items-center gap-3">
-          <Logo />
+        <div className="rp-container flex h-16 min-w-0 items-center gap-3 xl:h-full xl:flex-col xl:items-stretch xl:gap-3 xl:overflow-hidden xl:py-4">
+          <Logo className="min-w-11 xl:self-start xl:px-2" heightClassName="h-10 xl:h-14" />
 
-          <nav aria-label={t('nav.primary')} className="hidden min-w-0 items-center gap-0.5 xl:flex">
-            {PRIMARY_NAV.map(({ to, label }) => (
-              <Link
-                key={to}
-                to={to}
-                aria-current={current(to)}
-                className={cn(
-                  'rp-underline inline-flex min-h-11 items-center px-2.5 text-sm font-medium whitespace-nowrap transition-colors 2xl:px-3.5',
-                  active === to ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
-                )}
+          <p className="rp-shell-section m-0 min-w-0 flex-1 truncate font-display text-base font-semibold text-foreground xl:hidden">
+            {section ? (
+              <>
+                <span className="sr-only">{t('nav.section')}: </span>
+                {t(section)}
+              </>
+            ) : null}
+          </p>
+
+          {/* On short laptop screens only the link list scrolls, so the sync
+              status and Report Hazard stay in view at the bottom of the rail. */}
+          <nav
+            aria-label={t('nav.primary')}
+            className="rp-rail-nav hidden min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain xl:flex"
+          >
+            <ul className="m-0 grid list-none gap-0.5 p-0">
+              {PRIMARY_NAV.map(({ to, label, icon }) => (
+                <RailLink key={to} to={to} label={t(label)} icon={icon} current={current(to)} />
+              ))}
+            </ul>
+            <div className="grid gap-1">
+              <p
+                id="rp-rail-more"
+                className="m-0 px-3 text-xs font-semibold text-muted-foreground"
               >
-                {t(label)}
-              </Link>
-            ))}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    'min-h-11 gap-1 px-2.5 text-sm font-medium',
-                    secondaryNav.some(({ to }) => active === to)
-                      ? 'text-foreground'
-                      : 'text-muted-foreground',
-                  )}
-                  aria-current={
-                    secondaryNav.some(({ to }) => active === to) ? 'page' : undefined
-                  }
-                >
-                  {t('nav.more')}
-                  <ChevronDown aria-hidden className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {secondaryNav.map(({ to, label }) => (
-                  <DropdownMenuItem key={to} asChild>
-                    <Link to={to} aria-current={current(to)}>
-                      {t(label)}
-                    </Link>
-                  </DropdownMenuItem>
+                {t('nav.more')}
+              </p>
+              <ul aria-labelledby="rp-rail-more" className="m-0 grid list-none gap-0.5 p-0">
+                {secondaryNav.map(({ to, label, icon }) => (
+                  <RailLink key={to} to={to} label={t(label)} icon={icon} current={current(to)} />
                 ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </ul>
+            </div>
           </nav>
 
-          <div className="ml-auto hidden min-w-0 shrink-0 items-center gap-3 xl:flex">
+          <SyncStatusIndicator className="shrink-0" />
+
+          {/* Rail utilities: search, language and theme, then the account and
+              the one primary action. */}
+          <div className="rp-rail-tools ml-auto hidden min-w-0 shrink-0 items-center gap-2 xl:ml-0 xl:flex xl:flex-wrap">
             <SearchButton onOpen={openSearch} />
             <LanguageSwitch />
             <ThemeSwitch />
             <Button
               variant="ghost"
-              className="h-10 rounded-full whitespace-nowrap"
+              className="ml-2 whitespace-nowrap xl:ml-0 xl:w-full xl:justify-start"
               onClick={(event) => openLogin(event.currentTarget)}
             >
               <UserRound aria-hidden />
               {accountLabel}
             </Button>
-            <Button asChild variant="report" className="h-10 rounded-full px-4 font-semibold whitespace-nowrap">
+            <Button asChild variant="report" className="px-4 font-semibold whitespace-nowrap xl:w-full">
               <Link
                 to="/report"
                 search={{ segment: undefined }}
@@ -318,30 +366,15 @@ export function SiteHeader() {
 
           <div className="ml-auto flex items-center gap-1 xl:hidden">
             <SearchButton onOpen={openSearch} compact />
-            <Button
-              asChild
-              variant="report"
-              size="icon-lg"
-              className="rounded-full sm:w-auto sm:px-4"
-              aria-label={t('nav.report')}
-            >
-              <Link
-                to="/report"
-                search={{ segment: undefined }}
-                aria-label={t('nav.report')}
-                aria-current={current('/report')}
-              >
-                <TriangleAlert aria-hidden />
-                <span className="hidden sm:inline">{t('nav.report')}</span>
-              </Link>
-            </Button>
+            {/* Report Hazard lives in the raised bottom tab below xl, so the
+                top bar does not repeat it. */}
             <Sheet key={pathname}>
               <SheetTrigger asChild>
                 <Button
                   ref={menuTriggerRef}
                   variant="ghost"
                   size="icon-lg"
-                  className="rounded-full xl:hidden"
+                  className="xl:hidden"
                   aria-label={t('nav.menu')}
                 >
                   <Menu aria-hidden />
@@ -353,23 +386,19 @@ export function SiteHeader() {
               >
                 <SheetHeader className="gap-0 py-3 pr-16 pl-4">
                   <SheetTitle>
-                    <Logo />
+                    <Logo className="min-w-11" heightClassName="h-10" />
                   </SheetTitle>
                   <SheetDescription className="sr-only">{t('nav.primary')}</SheetDescription>
                 </SheetHeader>
-                <nav aria-label={t('nav.primary')} className="flex flex-col gap-1 px-4">
-                  {PRIMARY_NAV.map(({ to, label }) => (
+                <nav aria-label={t('nav.primary')} className="rp-chrome-nav flex flex-col gap-1 px-4">
+                  {PRIMARY_NAV.map(({ to, label, icon: Icon }) => (
                     <SheetClose key={to} asChild>
                       <Link
                         to={to}
                         aria-current={current(to)}
-                        className={cn(
-                          'rp-press inline-flex min-h-11 items-center rounded-lg px-3 text-base font-medium',
-                          active === to
-                            ? 'bg-raised text-foreground'
-                            : 'text-muted-foreground hover:text-foreground',
-                        )}
+                        className="rp-rail-link rp-press inline-flex min-h-11 items-center gap-3 rounded-lg px-3 text-base font-medium"
                       >
+                        <Icon aria-hidden className="size-5 shrink-0" />
                         {t(label)}
                       </Link>
                     </SheetClose>
@@ -377,20 +406,16 @@ export function SiteHeader() {
                 </nav>
                 <nav
                   aria-label={t('nav.more')}
-                  className="mt-2 flex flex-col gap-1 border-t border-border px-4 pt-3"
+                  className="rp-chrome-nav mt-2 flex flex-col gap-1 border-t border-border px-4 pt-3"
                 >
-                  {secondaryNav.map(({ to, label }) => (
+                  {secondaryNav.map(({ to, label, icon: Icon }) => (
                     <SheetClose key={to} asChild>
                       <Link
                         to={to}
                         aria-current={current(to)}
-                        className={cn(
-                          'rp-press inline-flex min-h-11 items-center rounded-lg px-3 text-base font-medium',
-                          active === to
-                            ? 'bg-raised text-foreground'
-                            : 'text-muted-foreground hover:text-foreground',
-                        )}
+                        className="rp-rail-link rp-press inline-flex min-h-11 items-center gap-3 rounded-lg px-3 text-base font-medium"
                       >
+                        <Icon aria-hidden className="size-5 shrink-0" />
                         {t(label)}
                       </Link>
                     </SheetClose>
@@ -402,7 +427,7 @@ export function SiteHeader() {
                   <SheetClose asChild>
                     <Button
                       variant="outline"
-                      className="h-11 w-full rounded-full"
+                      className="mt-2 w-full"
                       onClick={() => openLogin(menuTriggerRef.current)}
                     >
                       <UserRound aria-hidden />
@@ -410,7 +435,7 @@ export function SiteHeader() {
                     </Button>
                   </SheetClose>
                   <SheetClose asChild>
-                    <Button asChild variant="report" className="h-11 w-full rounded-full font-semibold">
+                    <Button asChild variant="report" className="w-full font-semibold">
                       <Link
                         to="/report"
                         search={{ segment: undefined }}
@@ -425,43 +450,70 @@ export function SiteHeader() {
               </SheetContent>
             </Sheet>
           </div>
+
+          <p className="rp-rail-tagline m-0 hidden border-t border-border pt-3 text-xs text-muted-foreground xl:block">
+            {t('footer.tagline')}
+          </p>
         </div>
       </header>
 
-      <OfflineBanner />
-
       <nav
         aria-label={t('nav.bottom')}
-        className="fixed inset-x-0 bottom-0 z-(--z-bottom-nav) border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md xl:hidden"
+        className="rp-bottom-nav fixed inset-x-0 bottom-0 z-(--z-bottom-nav) border-t border-border bg-background pb-[env(safe-area-inset-bottom)] xl:hidden"
       >
-        <ul className="mx-auto flex max-w-xl items-end justify-around px-2">
-          {BOTTOM_NAV.map(({ to, label, icon: Icon, raised }) => (
-            <li key={to} className="flex-1">
-              {to === '/report' ? (
-                <Link
-                  to="/report"
-                  search={{ segment: undefined }}
-                  aria-current={current(to)}
-                  className="rp-press flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium text-foreground"
-                >
-                  <Icon className={cn('size-5', raised && 'text-brand-orange')} />
-                  {t(label)}
-                </Link>
-              ) : (
-                <Link
-                  to={to}
-                  aria-current={current(to)}
-                  className={cn(
-                    'rp-press flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium',
-                    active === to ? 'text-foreground' : 'text-muted-foreground',
-                  )}
-                >
-                  <Icon className="size-5" />
-                  {t(label)}
-                </Link>
-              )}
-            </li>
-          ))}
+        <ul className="mx-auto flex max-w-xl items-stretch justify-around px-2">
+          {BOTTOM_NAV.map(({ to, label, icon: Icon, raised }) => {
+            const isActive = active === to
+            // Icons start at the same top line, so a label that wraps to two
+            // lines never pushes its icon out of the row.
+            const itemClass = cn(
+              'rp-press relative flex min-h-16 flex-col items-center justify-start gap-1 px-1 pt-2 pb-1.5 text-center text-xs leading-tight font-medium',
+              isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+            )
+            // Orange marks where you are; it is the one accent in the chrome.
+            const marker = isActive ? (
+              <span
+                aria-hidden
+                data-testid="bottom-nav-marker"
+                className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-orange-on-light dark:bg-brand-orange"
+              />
+            ) : null
+            const icon = (
+              <span
+                aria-hidden
+                className={cn(
+                  'flex h-7 w-12 items-center justify-center rounded-full',
+                  isActive && 'bg-brand-orange/15',
+                )}
+              >
+                <Icon
+                  className={cn('size-5', (raised || isActive) && 'text-brand-orange')}
+                />
+              </span>
+            )
+            return (
+              <li key={to} className="flex flex-1">
+                {to === '/report' ? (
+                  <Link
+                    to="/report"
+                    search={{ segment: undefined }}
+                    aria-current={current(to)}
+                    className={cn(itemClass, 'w-full')}
+                  >
+                    {marker}
+                    {icon}
+                    {t(label)}
+                  </Link>
+                ) : (
+                  <Link to={to} aria-current={current(to)} className={cn(itemClass, 'w-full')}>
+                    {marker}
+                    {icon}
+                    {t(label)}
+                  </Link>
+                )}
+              </li>
+            )
+          })}
         </ul>
       </nav>
 

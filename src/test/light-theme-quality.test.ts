@@ -101,13 +101,17 @@ describe('header layout does not overlap at 1280, 1440 and 1920', () => {
   const chrome = read('components/site-chrome.tsx')
   const header = chrome.slice(chrome.indexOf('<header'), chrome.indexOf('</header>'))
 
-  it('uses a flex row with gap and min-w-0, with no absolute positioning', () => {
+  it('uses a flex row with gap and min-w-0; it is fixed only as the xl rail', () => {
     expect(header).toMatch(/rp-container flex [^"]*min-w-0[^"]*gap-3/)
-    expect(header).not.toMatch(/\babsolute\b|\bfixed\b/)
+    expect(header).not.toMatch(/\babsolute\b/)
+    // The app shell: a sticky top bar below xl, a fixed left rail from xl.
+    const classNames = (header.match(/className="[^"]*"/g) ?? []).join(' ')
+    expect(classNames).not.toMatch(/(?<!xl:)\bfixed\b/)
+    expect(header).toMatch(/xl:fixed xl:inset-y-0 xl:left-0 xl:w-\(--rp-rail-w\)/)
   })
 
   it('switches at xl (1280px), not at a custom or 2xl breakpoint', () => {
-    expect(header).toMatch(/hidden min-w-0 items-center gap-0\.5 xl:flex/)
+    expect(header).toMatch(/rp-rail-nav hidden min-h-0 min-w-0 [^"]*xl:flex/)
     expect(header).toMatch(/ml-auto hidden [^"]*xl:flex/)
     expect(header).toMatch(/xl:hidden/)
     expect(chrome).not.toMatch(/\b1440:/)
@@ -116,11 +120,11 @@ describe('header layout does not overlap at 1280, 1440 and 1920', () => {
   })
 
   it('links never wrap and keep small padding', () => {
-    expect(header).toMatch(/px-2\.5 text-sm font-medium whitespace-nowrap/)
+    expect(chrome).toMatch(/rp-rail-link rp-press flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium whitespace-nowrap/)
   })
 
   it('language switch cannot shrink or wrap into neighbours, and its focus ring is inset', () => {
-    expect(chrome).toMatch(/rp-lang inline-flex h-10 shrink-0 items-center gap-0\.5[^"]*whitespace-nowrap/)
+    expect(chrome).toMatch(/rp-lang inline-flex h-11 shrink-0 items-center gap-0\.5[^"]*whitespace-nowrap/)
     expect(styles).toMatch(/\.rp-lang \.rp-lang-btn:focus-visible[\s\S]*?outline-offset:\s*-3px/)
   })
 

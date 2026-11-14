@@ -11,7 +11,6 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { routeTree } from "@/routeTree.gen";
 import { NotFoundPage } from "@/components/error-pages";
@@ -79,13 +78,8 @@ describe("header and bottom navigation", () => {
       const primary = within(header()).getByRole("navigation", {
         name: "Primary",
       });
-      if (to === "/about") {
-        const user = userEvent.setup();
-        await user.click(within(header()).getByRole("button", { name: "More" }));
-        await user.click(await screen.findByRole("menuitem", { name }));
-      } else {
-        fireEvent.click(within(primary).getByRole("link", { name }));
-      }
+      // The rail lists About under its "More" heading, as a plain link.
+      fireEvent.click(within(primary).getByRole("link", { name }));
       await waitFor(() => expect(router.state.location.pathname).toBe(to));
     },
     30_000,
@@ -114,8 +108,8 @@ describe("header and bottom navigation", () => {
     const reportLinks = within(header()).getAllByRole("link", {
       name: "Report Hazard",
     });
-    expect(reportLinks).toHaveLength(2);
-    expect(reportLinks.map(pathOf)).toEqual(["/report", "/report"]);
+    // One in the rail; below xl the raised bottom tab carries Report Hazard.
+    expect(reportLinks.map(pathOf)).toEqual(["/report"]);
     fireEvent.click(reportLinks[0]);
     await waitFor(() => expect(router.state.location.pathname).toBe("/report"));
     const logo = within(header())
